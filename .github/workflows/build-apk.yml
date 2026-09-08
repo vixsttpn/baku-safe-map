@@ -8,6 +8,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,12 +21,37 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
       - run: npm install
+      - run: python3 -c "import json; f='app.json'; d=json.load(open(f)); d['expo']['android']['versionCode']=100+${{ github.run_number }}; json.dump(d, open(f,'w'), indent=2)"
       - run: npx expo prebuild --platform android --clean
       - run: |
-          cp android/keystore/baku-release.keystore android/app/baku-release.keystore || true
-          echo "apply from: 'signing.gradle'" >> android/app/build.gradle
-      - run: cd android && chmod +x gradlew &&./gradlew assembleRelease
+          cp android/keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || cp keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || true
+          cat > android/app/signing.gradle << 'EOF'
+          android {
+            signingConfigs {
+              release {
+                storeFile file('baku-release.keystore')
+                storePassword 'baku1234'
+                keyAlias 'baku'
+                keyPassword 'baku1234'
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+              }
+            }
+          }
+          EOF
+          grep -q "signing.gradle" android/app/build.gradle || echo "apply from: 'signing.gradle'" >> android/app/build.gradle
+          cat android/app/build.gradle | tail -20
+      - run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: APK
           path: android/app/build/outputs/apk/release/*.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          files: android/app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
