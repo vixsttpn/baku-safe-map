@@ -24,10 +24,11 @@ jobs:
       - run: python3 -c "import json; f='app.json'; d=json.load(open(f)); d['expo']['android']['versionCode']=100+${{ github.run_number }}; json.dump(d, open(f,'w'), indent=2)"
       - run: npx expo prebuild --platform android --clean
       - run: |
-          sed -i 's/1.9.24/1.9.25/g' android/build.gradle
-          sed -i 's/1.9.24/1.9.25/g' android/app/build.gradle || true
-          echo "kotlinVersion=1.9.25" >> android/gradle.properties
-          grep kotlinVersion android/build.gradle
+          echo "patching kotlin"
+          find android -type f -exec sed -i 's/1.9.24/1.9.25/g' {} \; || true
+          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \; || true
+          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.5.15/1.5.14/g' {} \; || true
+          grep -r "kotlinVersion" android/build.gradle | head -20
           cp android/keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || true
           cat > android/app/signing.gradle << 'EOF'
           android {
