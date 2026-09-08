@@ -24,29 +24,29 @@ jobs:
       - run: python3 -c "import json; f='app.json'; d=json.load(open(f)); d['expo']['android']['versionCode']=100+${{ github.run_number }}; json.dump(d, open(f,'w'), indent=2)"
       - run: npx expo prebuild --platform android --clean
       - run: |
-          find android -type f -exec sed -i 's/1.9.24/1.9.25/g' {} \; || true
-          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \; || true
-          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.5.15/1.5.14/g' {} \; || true
-          ls -la android/keystore/ 2>/dev/null; ls -la keystore/ 2>/dev/null; ls -la android/app/*.keystore 2>/dev/null || true
-          if [ -f android/keystore/baku-release.keystore ]; then cp android/keystore/baku-release.keystore android/app/baku-release.keystore; elif [ -f keystore/baku-release.keystore ]; then cp keystore/baku-release.keystore android/app/baku-release.keystore; else echo "generating keystore"; keytool -genkey -v -keystore android/app/baku-release.keystore -alias baku -keyalg RSA -keysize 2048 -validity 10000 -storepass baku1234 -keypass baku1234 -dname "CN=Baku, OU=Baku, O=Baku, L=Baku, S=Baku, C=AZ"; fi
+          set +e
+          find android -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \;
+          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \;
+          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.5.15/1.5.14/g' {} \;
+          set -e
+          if [ -f android/keystore/baku-release.keystore ]; then cp android/keystore/baku-release.keystore android/app/baku-release.keystore; elif [ -f keystore/baku-release.keystore ]; then cp keystore/baku-release.keystore android/app/baku-release.keystore; else echo "gen keystore"; keytool -genkey -v -keystore android/app/baku-release.keystore -alias baku -keyalg RSA -keysize 2048 -validity 10000 -storepass baku1234 -keypass baku1234 -dname "CN=Baku, OU=Baku, O=Baku, L=Baku, S=Baku, C=AZ"; fi
           ls -lh android/app/*.keystore
-          cat > android/app/signing.gradle << 'EOF'
-          android {
-            signingConfigs {
-              release {
-                storeFile file('baku-release.keystore')
-                storePassword 'baku1234'
-                keyAlias 'baku'
-                keyPassword 'baku1234'
-              }
-            }
-            buildTypes {
-              release {
-                signingConfig signingConfigs.release
-              }
-            }
-          }
-          EOF
+          printf "android {
+  signingConfigs {
+    release {
+      storeFile file('baku-release.keystore')
+      storePassword 'baku1234'
+      keyAlias 'baku'
+      keyPassword 'baku1234'
+    }
+  }
+  buildTypes {
+    release {
+      signingConfig signingConfigs.release
+    }
+  }
+}
+" > android/app/signing.gradle
           grep -q "signing.gradle" android/app/build.gradle || echo "apply from: 'signing.gradle'" >> android/app/build.gradle
       - run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
