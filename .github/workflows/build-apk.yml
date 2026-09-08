@@ -1,0 +1,62 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: |
+          VC=$((100 + ${{ github.run_number }}))
+          npx jq --argjson vc $VC '.expo.android.versionCode = $vc' app.json > tmp.json && mv tmp.json app.json
+      - run: npx expo prebuild --platform android --clean
+      - run: |
+          cp android/keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || true
+          cat > android/app/signing.gradle << 'EOF'
+          android {
+            signingConfigs {
+              release {
+                storeFile file('baku-release.keystore')
+                storePassword 'baku1234'
+                keyAlias 'baku'
+                keyPassword 'baku1234'
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+              }
+            }
+          }
+          EOF
+          grep -q "signing.gradle" android/app/build.gradle || echo "apply from: 'signing.gradle'" >> android/app/build.gradle
+      - run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+      - run: mkdir -p build && cp android/app/build/outputs/apk/release/app-release.apk build/BakuSafeMap-release.apk || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BakuSafeMap-APK
+          path: build/*.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: BakuSafeMap v1.0.${{ github.run_number }}
+          files: build/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
