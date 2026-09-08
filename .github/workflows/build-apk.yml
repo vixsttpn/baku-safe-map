@@ -18,25 +18,31 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
-      - name: Install deps
+      - name: Install
         run: npm install
-      - name: Bump versionCode
+      - name: Bump version
         run: python3 -c "import json; f='app.json'; d=json.load(open(f)); d['expo']['android']['versionCode']=100+${{ github.run_number }}; json.dump(d, open(f,'w'), indent=2)"
       - name: Prebuild
         run: npx expo prebuild --platform android --clean
-      - name: Fix Kotlin and Keystore
+      - name: Fix Kotlin
         run: |
-          sed -i 's/1.9.24/1.9.25/g' android/build.gradle
-          cat android/build.gradle | grep kotlinVersion
+          set +e
+          find android -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \;
+          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \;
+          find node_modules -type f -name "*.gradle" -exec sed -i 's/1.5.15/1.5.14/g' {} \;
+          set -e
+          grep kotlinVersion android/build.gradle
+      - name: Fix signing
+        run: |
           if [ -f android/keystore/baku-release.keystore ]; then cp android/keystore/baku-release.keystore android/app/baku-release.keystore; fi
           if [ -f keystore/baku-release.keystore ]; then cp keystore/baku-release.keystore android/app/baku-release.keystore; fi
           if [ ! -f android/app/baku-release.keystore ]; then keytool -genkey -v -keystore android/app/baku-release.keystore -alias baku -keyalg RSA -keysize 2048 -validity 10000 -storepass baku1234 -keypass baku1234 -dname "CN=Baku, OU=Baku, O=Baku, L=Baku, S=Baku, C=AZ"; fi
-          ls -lh android/app/*.keystore
-          echo "android { signingConfigs { release { storeFile file('baku-release.keystore'); storePassword 'baku1234'; keyAlias 'baku'; keyPassword 'baku1234' } } buildTypes { release { signingConfig signingConfigs.release } } }" > android/app/signing.gradle
+          printf "android {\n  signingConfigs {\n    release {\n      storeFile file('baku-release.keystore')\n      storePassword 'baku1234'\n      keyAlias 'baku'\n      keyPassword 'baku1234'\n    }\n  }\n  buildTypes {\n    release {\n      signingConfig signingConfigs.release\n    }\n  }\n}\n" > android/app/signing.gradle
+          cat android/app/signing.gradle
           grep -q signing.gradle android/app/build.gradle || echo "apply from: 'signing.gradle'" >> android/app/build.gradle
-      - name: Build APK
+      - name: Build
         run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: APK
