@@ -24,12 +24,12 @@ jobs:
       - run: python3 -c "import json; f='app.json'; d=json.load(open(f)); d['expo']['android']['versionCode']=100+${{ github.run_number }}; json.dump(d, open(f,'w'), indent=2)"
       - run: npx expo prebuild --platform android --clean
       - run: |
-          echo "patching kotlin"
           find android -type f -exec sed -i 's/1.9.24/1.9.25/g' {} \; || true
           find node_modules -type f -name "*.gradle" -exec sed -i 's/1.9.24/1.9.25/g' {} \; || true
           find node_modules -type f -name "*.gradle" -exec sed -i 's/1.5.15/1.5.14/g' {} \; || true
-          grep -r "kotlinVersion" android/build.gradle | head -20
-          cp android/keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || true
+          ls -la android/keystore/ 2>/dev/null; ls -la keystore/ 2>/dev/null; ls -la android/app/*.keystore 2>/dev/null || true
+          if [ -f android/keystore/baku-release.keystore ]; then cp android/keystore/baku-release.keystore android/app/baku-release.keystore; elif [ -f keystore/baku-release.keystore ]; then cp keystore/baku-release.keystore android/app/baku-release.keystore; else echo "generating keystore"; keytool -genkey -v -keystore android/app/baku-release.keystore -alias baku -keyalg RSA -keysize 2048 -validity 10000 -storepass baku1234 -keypass baku1234 -dname "CN=Baku, OU=Baku, O=Baku, L=Baku, S=Baku, C=AZ"; fi
+          ls -lh android/app/*.keystore
           cat > android/app/signing.gradle << 'EOF'
           android {
             signingConfigs {
