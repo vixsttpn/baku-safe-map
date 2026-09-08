@@ -1,0 +1,14 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<rect width="200" height="200" rx="48" fill="#1A1A1A"/>
+<text x="100" y="105" font-family="Georgia, serif" font-weight="700" font-size="110" fill="#E8DCC3" text-anchor="middle" dominant-baseline="middle">B</text>
+<g fill="none" stroke="#E8DCC3" stroke-width="1.2" stroke-linecap="round">
+  <path d="M75 145 Q85 165 95 180"/>
+  <path d="M125 145 Q115 165 105 180"/>
+  <path d="M60 160 Q85 170 95 180"/>
+  <path d="M140 160 Q115 170 105 180"/>
+</g>
+<g fill="#E8DCC3">
+  <ellipse cx="72" cy="138" rx="8" ry="12" transform="rotate(-30 72 138)"/>
+  <ellipse cx="128" cy="138" rx="8" ry="12" transform="rotate(30 128 138)"/>
+</g>
+</svg>
