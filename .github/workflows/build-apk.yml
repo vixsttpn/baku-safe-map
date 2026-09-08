@@ -24,10 +24,11 @@ jobs:
       - run: python3 -c "import json; f='app.json'; d=json.load(open(f)); d['expo']['android']['versionCode']=100+${{ github.run_number }}; json.dump(d, open(f,'w'), indent=2)"
       - run: npx expo prebuild --platform android --clean
       - run: |
-          sed -i 's/kotlinVersion = .*/kotlinVersion = "1.9.25"/' android/build.gradle || true
-          sed -i 's/org.jetbrains.kotlin:kotlin-gradle-plugin:.*/org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25/' android/build.gradle || true
-          grep -n kotlinVersion android/build.gradle
-          cp android/keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || cp keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || true
+          sed -i 's/1.9.24/1.9.25/g' android/build.gradle
+          sed -i 's/1.9.24/1.9.25/g' android/app/build.gradle || true
+          echo "kotlinVersion=1.9.25" >> android/gradle.properties
+          grep kotlinVersion android/build.gradle
+          cp android/keystore/baku-release.keystore android/app/baku-release.keystore 2>/dev/null || true
           cat > android/app/signing.gradle << 'EOF'
           android {
             signingConfigs {
